@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: jenkins
+  name: nginx
   labels:
-    app: jenkins
+    app: nginx
 spec:
   containers:
-    - name: jenkins
-    image: jenkins:2.60.3
+    - name: nginx
+    image: nginx:1.25
     ports:
       - containerPort: 8080
