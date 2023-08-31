@@ -4,15 +4,15 @@ metadata:
   name: busy-pod
 spec:
   containers:
-    - name: busy-container
-      image: busybox
-      command:
-        - "sh"
-        - "-c"
-        - "echo 'I am busy-container' && tail -f /dev/null"
-    - name: want-to-busy-container
-      image: busybox
-      command:
-        - "sh"
-        - "-c"
-        - "echo 'I am busy-container too !!' && tail -f /dev/null"
+  - name: busy-container
+    image: busybox
+    command:
+      - "sh"
+      - "-c"
+      - "echo 'I am busy-container' && tail -f /dev/null"
+  - name: want-to-busy-container
+    image: busybox
+    command:
+      - "sh"
+      - "-c"
+      - "echo 'I am busy-container too !!' && tail -f /dev/null"
