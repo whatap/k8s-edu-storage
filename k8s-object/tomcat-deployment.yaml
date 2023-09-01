@@ -13,7 +13,7 @@ spec:
         app: tomcat
     spec:
       containers:
-        - name: tomcat
+      - name: tomcat
         image: tomcat:10
         ports:
           - containerPort: 8080
