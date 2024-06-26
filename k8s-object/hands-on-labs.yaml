@@ -21,6 +21,9 @@ spec:
       containers:
       - name: callee-with-db
         image: workirostub/demo/callee-with-db:1.0.13
+        resources:
+          limits:
+            cpu: 500m
         ports:
         - containerPort: 8080
         env:
@@ -88,6 +91,9 @@ spec:
       containers:
       - name: callee
         image: workirostub/demo/callee:1.0.13
+        resources:
+          limits:
+            cpu: 500m
         ports:
         - containerPort: 8080
         env:
