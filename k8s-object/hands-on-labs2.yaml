@@ -1,0 +1,305 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: java
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: callee-with-db-deploy
+  namespace: java
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: callee-with-db
+  template:
+    metadata:
+      labels:
+        app: callee-with-db
+    spec:
+      containers:
+      - name: callee-with-db
+        image: ghcr.io/whatap/callee-with-db:v1.0.0
+        resources:
+          limits:
+            cpu: 500m
+        ports:
+        - containerPort: 8080
+        env:
+        - name: JAVA_OPTION
+          value: "-Dspring.profiles.active=prod"
+        - name: DATASOURCE_URL
+          value: "jdbc:postgresql://db-svc.java:5432/postgres"
+        - name: DATASOURCE_USERNAME
+          value: postgres
+        - name: DATASOURCE_PASSWORD
+          value: qwer1234
+        - name: whatap.server.host
+          value: "13.124.11.223/13.209.172.35"
+        - name: whatap.micro.enabled
+          value: "true"
+        - name: weaving
+          value: "spring-boot-3.0"
+        - name: mtrace_rate
+          value: "100"
+        - name: mtrace_auto_enabled
+          value: "false"
+        - name: logsink_rt_enabled
+          value: "true"
+        - name: logsink_enabled
+          value: "true"
+        - name: NODE_IP
+          valueFrom: {fieldRef: {fieldPath: status.hostIP}}
+        - name: NODE_NAME
+          valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+        - name: POD_NAME
+          valueFrom: {fieldRef: {fieldPath: metadata.name}}
+        - name: OKIND
+          value: hands-on-labs
+        - name: license
+          value: ${{LICENSEVALUE}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: callee-with-db-svc
+  namespace: java
+spec:
+  selector:
+    app: callee-with-db
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: callee-deploy
+  namespace: java
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: callee
+  template:
+    metadata:
+      labels:
+        app: callee
+    spec:
+      containers:
+      - name: callee
+        image: ghcr.io/whatap/callee:v1.0.0
+        resources:
+          limits:
+            cpu: 500m
+        ports:
+        - containerPort: 8080
+        env:
+        - name: JAVA_OPTION
+          value: "-Dspring.profiles.active=prod"
+        - name: CALLEE_WITH_DB_URL
+          value: http://callee-with-db-svc.java:8080
+        - name: whatap.server.host
+          value: "13.124.11.223/13.209.172.35"
+        - name: whatap.micro.enabled
+          value: "true"
+        - name: weaving
+          value: "spring-boot-3.0"
+        - name: mtrace_rate
+          value: "100"
+        - name: mtrace_auto_enabled
+          value: "false"
+        - name: logsink_rt_enabled
+          value: "true"
+        - name: logsink_enabled
+          value: "true"
+        - name: NODE_IP
+          valueFrom: {fieldRef: {fieldPath: status.hostIP}}
+        - name: NODE_NAME
+          valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+        - name: POD_NAME
+          valueFrom: {fieldRef: {fieldPath: metadata.name}}
+        - name: OKIND
+          value: hands-on-labs
+        - name: license
+          value: ${{LICENSEVALUE}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: callee-svc
+  namespace: java
+spec:
+  selector:
+    app: callee
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caller-deploy
+  namespace: java
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: caller
+  template:
+    metadata:
+      labels:
+        app: caller
+    spec:
+      containers:
+      - name: caller
+        image: ghcr.io/whatap/caller:v1.0.2
+        ports:
+        - containerPort: 8080
+        env:
+        - name: JAVA_OPTION
+          value: "-Dspring.profiles.active=prod"
+        - name: CALLEE_URL
+          value: http://callee-svc.java:8080
+        - name: whatap.server.host
+          value: "13.124.11.223/13.209.172.35"
+        - name: whatap.micro.enabled
+          value: "true"
+        - name: weaving
+          value: "spring-boot-3.0"
+        - name: mtrace_rate
+          value: "100"
+        - name: mtrace_auto_enabled
+          value: "false"
+        - name: logsink_rt_enabled
+          value: "true"
+        - name: logsink_enabled
+          value: "true"
+        - name: NODE_IP
+          valueFrom: {fieldRef: {fieldPath: status.hostIP}}
+        - name: NODE_NAME
+          valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+        - name: POD_NAME
+          valueFrom: {fieldRef: {fieldPath: metadata.name}}
+        - name: OKIND
+          value: hands-on-labs
+        - name: license
+          value: ${{LICENSEVALUE}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: caller-svc
+  namespace: java
+spec:
+  type: NodePort
+  selector:
+    app: caller
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 32100
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres
+  namespace: java
+  labels:
+    app: db
+spec:
+  restartPolicy: Always
+  containers:
+  - name: postgres
+    image: postgres:12
+    ports:
+    - containerPort: 5432
+    env:
+    - name: POSTGRES_PASSWORD
+      value: qwer1234
+    - name: PGDATA
+      value: /var/lib/postgresql/data/pgdata
+  volumes:
+  - name: data
+    emptyDir:
+      sizeLimit: 100Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-svc
+  namespace: java
+spec:
+  selector:
+    app: db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: issue
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oom-java-deploy
+  namespace: issue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oom-java
+  template:
+    metadata:
+      labels:
+        app: oom-java
+    spec:
+      containers:
+      - name: oom-java
+        image: workirostub/demo:oom
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            memory: 150Mi
+        env:
+        - name: NODE_IP
+          valueFrom: {fieldRef: {fieldPath: status.hostIP}}
+        - name: NODE_NAME
+          valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+        - name: POD_NAME
+          valueFrom: {fieldRef: {fieldPath: metadata.name}}
+        - name: OKIND
+          value: issue
+        - name: license
+          value: ${{LICENSEVALUE}}
+        - name: whatap.server.host
+          value: "13.124.11.223/13.209.172.35"
+        - name: whatap.micro.enabled
+          value: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pending-deploy
+  namespace: issue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pending-pod
+  template:
+    metadata:
+      labels:
+        app: pending-pod
+    spec:
+      containers:
+      - name: pending-con
+        image: nignx
